@@ -32,7 +32,7 @@ def print_help():
 
 if __name__ == '__main__':
     try:
-        advanced = ['demote', 'boot', 'dump=', 'hexdump=', 'dump-rom', 'dump-nor=', 'flash-nor=', '24kpwn', 'remove-24kpwn', 'remove-alloc8', 'decrypt-gid=', 'encrypt-gid=', 'decrypt-uid=', 'encrypt-uid=']
+        advanced = ['demote', 'boot', 'dump=', 'hexdump=', 'dump-rom', 'dump-nor=', 'flash-nor=', '24kpwn', 'remove-24kpwn', 'remove-alloc8', 'decrypt-gid=', 'encrypt-gid=', 'decrypt-uid=', 'encrypt-uid=', 'disable-wdt']
         opts, args = getopt.getopt(sys.argv[1:], 'pxf:', advanced)
     except getopt.GetoptError:
         print 'ERROR: Invalid arguments provided.'
@@ -371,6 +371,28 @@ if __name__ == '__main__':
                 device = PwnedDFUDevice()
                 print 'Encrypting with device-specific UID key.'
                 print device.aes_hex(arg, AES_ENCRYPT, AES_UID_KEY)
+
+        if opt == '--disable-wdt':
+            device = dfu.acquire_device()
+            serial_number = device.serial_number
+            
+            if 'PWND:[checkm8]' not in serial_number:
+                print "Please enter to pwned DFU first"
+                sys.exit(-1)
+            
+            pwned = usbexec.PwnedUSBDevice()
+            
+            if 'CPID:8950' in serial_number:
+                pwned.write_memory (0x3F10303C, struct.pack('<I', 0x0))
+            elif 'CPID:8010' in serial_number:
+                pwned.write_memory (0x2102B001C, struct.pack('<I', 0x0))
+            elif 'CPID:8015' in serial_number:
+                pwned.write_memory (0x2352B001C, struct.pack('<I', 0x0))
+            else:
+                print "Not supported"
+                sys.exit(-1)
+
+            print "wdt is now disabled."
 
         if opt == '--boot':
             device = dfu.acquire_device()
